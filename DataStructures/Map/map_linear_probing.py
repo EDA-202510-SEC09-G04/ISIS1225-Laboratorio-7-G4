@@ -1,8 +1,11 @@
+import math
 from pprint import pprint
 import random
 from DataStructures.List import array_list as al
 from DataStructures.Map.map_functions import hash_value, next_prime
 from DataStructures.Map import map_entry as me
+
+
 
 def find_slot(my_map, key, hash_value):
    first_avail = None
@@ -61,17 +64,12 @@ def new_map(num_elements, load_factor, prime=109345121):
     return new_table
 
 
-""" my_table = new_map(1, 0.5)
-pprint(my_table) """
 
 def put(my_map, key, value):
     hash_index = hash_value(my_map, key)
     ocupied, slot_index = find_slot(my_map, key, hash_index)
-
-
     
     elements = my_map['table']['elements']
-    print(elements)
     
     if elements[slot_index]['key'] is not None:
         elements[slot_index]['value'] = value
@@ -86,31 +84,77 @@ def put(my_map, key, value):
     
     return my_map
 
-my_table = new_map(5, 0.5)
-pprint(my_table)
-my_table = put(my_table, 1, {'name': 'John', 'age': 25})
-my_table = put(my_table, 12, {'name': 'Jane', 'age': 22})
-pprint(my_table)
+
 
 def contains(my_map, key):
-    pass
+    hash_index = hash_value(my_map, key)
+    ocupied, slot_index = find_slot(my_map, key, hash_index)
+
+    elements = my_map['table']
+    entry = al.get_element(elements, slot_index)
+
+    return me.get_key(entry) is not None
 
 def get(my_map, key):
-    pass
+    hash_index = hash_value(my_map, key)
+    ocupied, slot_index = find_slot(my_map, key, hash_index)
+
+    elements = my_map["table"]
+    entry = al.get_element(elements, slot_index)
+
+    if me.get_key(entry) is not None:
+        return me.get_value(entry)
+    
+    return None
 
 def remove(my_map, key):
-    pass
+    hash_index = hash_value(my_map, key)
+    ocupied, slot_index = find_slot(my_map, key, hash_index)
+
+    elements = my_map["table"]
+    entry = al.get_element(elements, slot_index)
+
+    if me.get_key(entry) is not None:
+        al.change_info(elements, slot_index, {"key": "__EMPTY__", "value": None})
+        my_map["size"] -= 1
+
+    return my_map
 
 def size(my_map):
-    pass
-
+    return my_map["size"]
 
 def is_empty(my_map):
-    pass
+    return my_map["size"] == 0
+
+def key_set(my_map):
+    keys = al.new_list()
+    for entry in my_map["table"]["elements"]:
+        if entry["key"] is not None and entry["key"] != "__EMPTY__":
+            al.add_last(keys, entry["key"])
+    return keys
 
 def value_set(my_map):
-    pass
+    values = al.new_list()
+    for entry in my_map["table"]["elements"]:
+        if entry["key"] is not None and entry["key"] != "__EMPTY__":
+            al.add_last(values, entry["value"])
+    return values
     
 def rehash(my_map):
-    pass
+    new_table = new_map(my_map['capacity'], my_map["limit_factor"])
+    
+    for entry in my_map["table"]["elements"]:
+        if entry["key"] is not None and entry["key"] != "__EMPTY__":
+            put(new_table, entry["key"], entry["value"])
+    
+    return new_table
 
+# Crear una tabla vacia
+my_table = new_map(5, 0.5)
+pprint(my_table)
+# Salida esperada la misma respuesta de la función new_map()
+
+# Realizar un rehash de la tabla
+my_table = rehash(my_table)
+pprint(my_table)
+# Salida esperada a continuación
