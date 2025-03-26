@@ -30,12 +30,9 @@ import time
 import tracemalloc
 
 
-# TODO Realice la importación del mapa linear probing
 from DataStructures.Map import map_linear_probing as lp
-# TODO Realice la importación de ArrayList como estructura de datos auxiliar para sus requerimientos
 from DataStructures.List import array_list as al
-# TODO Realice la importación del mapa separate chaining
-
+from DataStructures.Map import map_separate_chaining as sp
 
 data_dir = os.path.dirname(os.path.realpath('__file__')) + '/Data/GoodReads/'
 
@@ -57,20 +54,20 @@ def new_logic():
 
     #Tabla de Hash que contiene los libros indexados por good_reads_book_id  
     #(good_read_id -> book)
-    catalog['books_by_id'] = None #TODO completar la creación del mapa
+    catalog['books_by_id'] = lp.new_map(1000, 0.7)
 
     #Tabla de Hash con la siguiente pareja llave valor: (author_name -> List(books))
-    catalog['books_by_authors'] = None #TODO completar la creación del mapa
+    catalog['books_by_authors'] = lp.new_map(1000, 0.7)
 
     #Tabla de Hash con la siguiente pareja llave valor: (tag_name -> tag)
-    catalog['tags'] = None #TODO completar la creación del mapa
+    catalog['tags'] = lp.new_map(1000, 0.7)
 
     #Tabla de Hash con la siguiente pareja llave valor: (tag_id -> book_tags)
     catalog['book_tags'] = lp.new_map(1000,0.7)
 
     #Tabla de Hash principal que contiene sub-mapas dentro de los valores
     #con la siguiente representación de la pareja llave valor: (author_name -> (original_publication_year -> list(books)))
-    catalog['books_by_year_author'] = None #TODO completar la creación del mapa
+    catalog['books_by_year_author'] = lp.new_map(1000,0.7)
     
     return catalog
 
@@ -79,6 +76,7 @@ def new_logic():
 #  -------------------------------------------------------------
 
 #TODO: incorporar las funciones para toma de tiempo y memoria
+
 def load_data(catalog):
     """
     Carga los datos de los archivos y cargar los datos en la
@@ -96,7 +94,7 @@ def load_books(catalog):
     cada uno de ellos, se crea en la lista de autores, a dicho autor y una
     referencia al libro que se esta procesando.
     """
-    booksfile = data_dir + "books.csv"
+    booksfile = data_dir + "books-small.csv"
     input_file = csv.DictReader(open(booksfile, encoding='utf-8'))
     for book in input_file:
         add_book(catalog, book)
@@ -118,7 +116,7 @@ def load_books_tags(catalog):
     """
     Carga la información que asocia tags con libros.
     """
-    bookstagsfile = data_dir +"book_tags.csv"
+    bookstagsfile = data_dir +"book_tags-small.csv"
     input_file = csv.DictReader(open(bookstagsfile, encoding='utf-8'))
     for booktag in input_file:
         add_book_tag(catalog, booktag)
@@ -199,7 +197,9 @@ def add_book_author_and_year(catalog, author_name, book):
     books_by_year_author = catalog['books_by_year_author']
     pub_year = book['original_publication_year']
     #Si el año de publicación está vacío se reemplaza por un valor simbolico
-    #TODO Completar manejo de los escenarios donde el año de publicación es vacío.
+    if not pub_year: 
+        pub_year = "Desconocido"
+    
     author_value = lp.get(books_by_year_author,author_name)
     if author_value:
         pub_year_value = lp.get(author_value,pub_year)
@@ -211,7 +211,11 @@ def add_book_author_and_year(catalog, author_name, book):
             pub_year_map = lp.new_map(1000,0.7)
             lp.put(pub_year_map,pub_year,book)
     else:
-        pass # TODO Completar escenario donde no se había agregado el autor al mapa principal
+        pub_year_map = lp.new_map(1000, 0.7)
+        books = al.new_list()
+        al.add_last(books, book)
+        lp.put(pub_year_map, pub_year, books)
+        lp.put(books_by_year_author, author_name, pub_year_map)
     return catalog
 
 
@@ -238,7 +242,9 @@ def add_book_tag(catalog, book_tag):
         book_tag_list = lp.get(catalog['book_tags'],t['tag_id'])
         al.add_last(book_tag_list,book_tag)
     else:
-        pass #TODO Completar escenario donde el book_tag no se había agregado al mapa   
+        new_list = al.new_list()
+        al.add_last(new_list, t)
+        lp.put(catalog['book_tags'], t['tag_id'], new_list)
     return catalog
 
 #  -------------------------------------------------------------
@@ -249,16 +255,14 @@ def get_book_info_by_book_id(catalog, good_reads_book_id):
     """
     Retorna toda la informacion que se tenga almacenada de un libro según su good_reads_id.
     """
-    #TODO Completar función de consulta
-    pass
+    return lp.get(catalog['books_by_id'], good_reads_book_id)
 
 
 def get_books_by_author(catalog, author_name):
     """
     Retorna los libros asociado al autor ingresado por párametro
     """
-    #TODO Completar función de consulta
-    pass
+    return lp.get(catalog['books_by_authors'], author_name)
 
 
 def get_books_by_tag(catalog, tag_name):
@@ -271,8 +275,12 @@ def get_books_by_tag(catalog, tag_name):
     de book_tags y finalmente relacionarlo con los datos completos del libro.
 
     """
-    #TODO Completar función de consulta
-    pass
+    tag = lp.get(catalog['tags'], tag_name)
+    if tag:
+        tag_id = tag['tag_id']
+        books_with_tag = lp.get(catalog['book_tags'], tag_id)
+        return al.size(books_with_tag) if books_with_tag else 0
+    return 0
 
 
 def get_books_by_author_pub_year(catalog, author_name, pub_year):
@@ -288,8 +296,11 @@ def get_books_by_author_pub_year(catalog, author_name, pub_year):
     tracemalloc.start()
     start_memory = getMemory()
     
-    # TODO: Completar la función de consulta
-    resultado = None  # Sustituir con la lógica real
+    author_data = lp.get(catalog['books_by_year_author'], author_name)
+    if author_data:
+        books = lp.get(author_data, pub_year)
+    else:
+        books = None
     
     # Detener medición de memoria
     stop_memory = getMemory()
@@ -299,7 +310,7 @@ def get_books_by_author_pub_year(catalog, author_name, pub_year):
     tiempo_transcurrido = deltaTime(end_time, start_time)
     memoria_usada = deltaMemory(start_memory, stop_memory)
     
-    return resultado, tiempo_transcurrido, memoria_usada
+    return books, (stop_time - start_time), (current / 1024, peak / 1024)
 
 
 #  -------------------------------------------------------------
