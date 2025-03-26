@@ -148,13 +148,3 @@ def rehash(my_map):
             put(new_table, entry["key"], entry["value"])
     
     return new_table
-
-# Crear una tabla vacia
-my_table = new_map(5, 0.5)
-pprint(my_table)
-# Salida esperada la misma respuesta de la función new_map()
-
-# Realizar un rehash de la tabla
-my_table = rehash(my_table)
-pprint(my_table)
-# Salida esperada a continuación
