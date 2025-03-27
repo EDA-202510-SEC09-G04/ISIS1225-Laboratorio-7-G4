@@ -1,9 +1,9 @@
 import random
-from DataStructures import array_list as array
-from DataStructures import single_linked_list as slist
-from DataStructures import map_entry as me
-from DataStructures import map_functions as mf
-from Utils import error as error
+from DataStructures.List import array_list as array
+from DataStructures.List import single_linked_list as slist
+from DataStructures.Map import map_entry as me
+from DataStructures.Map import map_functions as mf
+from DataStructures.Utils import error as error
 
 def new_map(num_elements, load_factor, prime=109345121):
     try:
